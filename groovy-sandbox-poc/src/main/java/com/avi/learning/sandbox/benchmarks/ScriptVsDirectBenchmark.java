@@ -1,11 +1,16 @@
 package com.avi.learning.sandbox.benchmarks;
 
+import com.avi.learning.sandbox.scriptexecutor.CELExecutor;
 import com.avi.learning.sandbox.scriptexecutor.DirectExecutor;
-import com.avi.learning.sandbox.scriptexecutor.GroovyScriptExecutor;
+import com.avi.learning.sandbox.scriptexecutor.GroovyShellExecutor;
 import com.avi.learning.sandbox.scriptexecutor.MVELExecutor;
+import dev.cel.common.CelValidationException;
+import dev.cel.runtime.CelEvaluationException;
 import org.openjdk.jmh.annotations.*;
 
 import javax.script.ScriptException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -16,13 +21,15 @@ import java.util.concurrent.TimeUnit;
 public class ScriptVsDirectBenchmark {
 
     Random random = new Random();
-    GroovyScriptExecutor scriptExecutor;
+    GroovyShellExecutor scriptExecutor;
     DirectExecutor directExecutor;
     MVELExecutor mvelExecutor;
+    CELExecutor celEvaluator;
 
     @Setup
-    public void setup() throws ScriptException {
-        scriptExecutor = new GroovyScriptExecutor();
+    public void setup() throws ScriptException, CelValidationException, CelEvaluationException {
+        scriptExecutor = new GroovyShellExecutor();
+        celEvaluator = new CELExecutor();
         directExecutor = new DirectExecutor();
         mvelExecutor = new MVELExecutor();
     }
@@ -31,10 +38,11 @@ public class ScriptVsDirectBenchmark {
     @BenchmarkMode(Mode.All)
     public void runScriptExecutor() {
         try {
-            int n = random.nextInt(100);
-            System.out.println("Script Result: " + scriptExecutor.getValue(n) + " - (" + n + ")");
+            Map<String, Object> context = new HashMap<>();
+            context.put("n", random.nextInt(100));
+            scriptExecutor.getValue(context);
         } catch (Exception ex) {
-            System.out.println("Exception: " + ex.getMessage());
+            System.out.println("Script Exception: " + ex.getMessage());
         }
     }
 
@@ -42,10 +50,11 @@ public class ScriptVsDirectBenchmark {
     @BenchmarkMode(Mode.All)
     public void runDirectExecutor() {
         try {
-            int n = random.nextInt(100);
-            System.out.println("Direct Result: " + directExecutor.getValue(n) + " - (" + n + ")");
+            Map<String, Integer> context = new HashMap<>();
+            context.put("n", random.nextInt(100));
+            directExecutor.getValue(context);
         } catch (Exception ex) {
-            System.out.println("Exception: " + ex.getMessage());
+            System.out.println("Direct Exception: " + ex.getMessage());
         }
     }
 
@@ -53,10 +62,23 @@ public class ScriptVsDirectBenchmark {
     @BenchmarkMode(Mode.All)
     public void runMVELExecutor() {
         try {
-            int n = random.nextInt(100);
-            System.out.println("MVEL Result: " + mvelExecutor.getValue(n) + " - (" + n + ")");
+            Map<String, Object> context = new HashMap<>();
+            context.put("n", random.nextInt(100));
+            mvelExecutor.getValue(context);
         } catch (Exception ex) {
-            System.out.println("Exception: " + ex.getMessage());
+            System.out.println("MVEL Exception: " + ex.getMessage());
+        }
+    }
+
+    @Benchmark
+    @BenchmarkMode(Mode.All)
+    public void runCELExecutor() {
+        try {
+            Map<String, Object> context = new HashMap<>();
+            context.put("n", random.nextInt(100));
+            celEvaluator.getValue(context);
+        } catch (Exception ex) {
+            System.out.println("CEL Exception: " + ex.getMessage());
         }
     }
 }
